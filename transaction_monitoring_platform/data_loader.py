@@ -1,5 +1,4 @@
 # data_loader.py
-# Purv Savalia — FinWatch AML Analytics Platform
 #
 # Handles two modes:
 #   1. Real PaySim dataset from Kaggle (preferred)
@@ -29,19 +28,14 @@ DB_PATH     = os.path.join(BASE_DIR, "finwatch.db")
 # PaySim CSV name (as downloaded from Kaggle)
 PAYSIM_CSV  = os.path.join(BASE_DIR, "PS_20174392719_1491204439457_log.csv")
 
-# how many rows to load from the real CSV (full file is 6.3M rows — heavy)
-# 200K gives a representative sample and stays fast on a laptop
 SAMPLE_SIZE = 200_000
 
-# PaySim full file = 6.3M rows; 2.5M is the working scale from the resume project
-SYNTHETIC_SIZE = 100_000   # 2.5M on prod hardware (set NUM_TRANSACTIONS = 2_500_000)
+SYNTHETIC_SIZE = 100_000   
 
-
-# ------------------------------------------------------------------
 # PaySim transaction types (from the paper)
 # CASH_IN / CASH_OUT / DEBIT / PAYMENT / TRANSFER
 # Fraud only occurs in CASH_OUT and TRANSFER per the original research
-# ------------------------------------------------------------------
+
 TX_TYPES = ["CASH_IN", "CASH_OUT", "DEBIT", "PAYMENT", "TRANSFER"]
 
 # merchant name prefixes (PaySim uses C for customers, M for merchants)
@@ -74,10 +68,9 @@ def generate_synthetic_paysim(n=SYNTHETIC_SIZE):
         tx_type     = random.choices(TX_TYPES, weights=[0.22, 0.35, 0.04, 0.34, 0.05])[0]
         step        = random.randint(1, 744)
 
-        # fraud only possible in CASH_OUT and TRANSFER (per PaySim paper)
         is_fraud = 0
         if tx_type in ("CASH_OUT", "TRANSFER"):
-            is_fraud = int(random.random() < 0.003)   # ~0.3% fraud rate
+            is_fraud = int(random.random() < 0.003)  
 
         # balance logic — fraud transactions often drain accounts to 0
         old_orig = round(random.uniform(0, 500_000), 2)
@@ -137,10 +130,8 @@ def _enrich(df):
     df["txn_hour"] = df["txn_datetime"].dt.hour
     df["txn_month"]= df["txn_datetime"].dt.strftime("%Y-%m")
 
-    # balance drop flag — common in fraud cases
     df["balance_drop"] = (df["newbalanceOrig"] == 0) & (df["oldbalanceOrg"] > 0)
 
-    # amount buckets for easy analysis
     df["amount_bucket"] = pd.cut(
         df["amount"],
         bins=[0, 1_000, 10_000, 50_000, 200_000, float("inf")],
@@ -150,7 +141,6 @@ def _enrich(df):
     # unique transaction id
     df.insert(0, "txn_id", [f"T{i+1:08d}" for i in range(len(df))])
 
-    # rename for consistency
     df.rename(columns={
         "type":  "txn_type",
         "nameOrig": "account_orig",
@@ -167,7 +157,6 @@ def build_database():
     """
     Main entry point. Loads or generates data, enriches it, writes to SQLite.
     """
-    # prefer real data if CSV exists
     if os.path.exists(PAYSIM_CSV):
         raw = load_paysim_csv()
     else:
