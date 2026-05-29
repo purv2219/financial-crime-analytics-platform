@@ -1,5 +1,4 @@
 # rule_engine.py
-# Purv Savalia — FinWatch AML Analytics Platform
 #
 # SQL-based AML detection rules designed around the PaySim transaction schema.
 # Rules are based on FinCEN guidance, FATF typologies, and behavioral patterns
@@ -14,7 +13,6 @@ import pandas as pd
 
 DEFAULT_DB = "finwatch.db"
 
-# ------------------------------------------------------------------
 # RULE CATALOGUE
 # Each entry contains:
 #   name        — short display name for dashboard
@@ -26,7 +24,6 @@ DEFAULT_DB = "finwatch.db"
 #   txn_id, txn_type, amount, account_orig, account_dest
 #   oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest
 #   isFraud, isFlaggedFraud, txn_date, txn_hour, balance_drop
-# ------------------------------------------------------------------
 
 RULES = {
 
