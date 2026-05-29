@@ -1,7 +1,4 @@
 # app.py
-# Transaction Monitoring Dashboard
-# Purv Savalia
-#
 # Uses the PaySim dataset from Kaggle (ealaxi/paysim1).
 # PaySim simulates mobile money transactions with injected fraud patterns.
 # Run: python -m streamlit run app.py
@@ -51,9 +48,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ------------------------------------------------------------------
 # Database init — builds once, cached for the session
-# ------------------------------------------------------------------
 @st.cache_resource(show_spinner="Loading transaction database...")
 def init_db():
     if not os.path.exists(DB_PATH):
@@ -85,10 +80,8 @@ def load_transactions(db_path):
     df["txn_date"] = pd.to_datetime(df["txn_date"])
     return df
 
-
-# ------------------------------------------------------------------
 # Run detection rules once on first load
-# ------------------------------------------------------------------
+
 db_path = init_db()
 
 if "rules_run" not in st.session_state:
@@ -101,9 +94,8 @@ rule_res   = st.session_state.get("rule_result", {})
 flagged_df = rule_res.get("flagged_df", pd.DataFrame())
 
 
-# ------------------------------------------------------------------
 # Sidebar
-# ------------------------------------------------------------------
+
 with st.sidebar:
     st.markdown("### Transaction Monitoring")
     st.caption("AML / Financial Crime Detection")
@@ -154,9 +146,8 @@ AML/fraud detection research and uses realistic behavioral patterns.
         """)
 
 
-# ------------------------------------------------------------------
 # Load data
-# ------------------------------------------------------------------
+
 total_tx, total_flagged, total_fraud, total_vol = load_kpis(db_path)
 df_tx = load_transactions(db_path)
 
@@ -171,9 +162,8 @@ else:
     detection_efficiency = 0.0
 
 
-# ==================================================================
 # PAGE 1 — OVERVIEW
-# ==================================================================
+
 if page == "Overview":
     st.markdown('<div class="page-title">Overview</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-sub">Summary of transaction volume, flagged activity, and fraud detection results.</div>', unsafe_allow_html=True)
@@ -270,10 +260,8 @@ if page == "Overview":
                      column_config={"Alerts": st.column_config.ProgressColumn(
                          min_value=0, max_value=max_hits)})
 
-
-# ==================================================================
 # PAGE 2 — ALERT EXPLORER
-# ==================================================================
+
 elif page == "Alert Explorer":
     st.markdown('<div class="page-title">Alert Explorer</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-sub">Filter and review flagged transactions. Export for further investigation.</div>', unsafe_allow_html=True)
@@ -311,10 +299,8 @@ elif page == "Alert Explorer":
         st.download_button("Export to CSV", filt.to_csv(index=False),
                            "alerts_export.csv", "text/csv")
 
-
-# ==================================================================
 # PAGE 3 — RULE PERFORMANCE
-# ==================================================================
+
 elif page == "Rule Performance":
     st.markdown('<div class="page-title">Rule Performance</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-sub">Precision and recall for each detection rule, measured against PaySim fraud labels.</div>', unsafe_allow_html=True)
@@ -372,10 +358,8 @@ elif page == "Rule Performance":
                 st.markdown(f"**What it detects:** {meta['description']}")
                 st.code(meta["sql"].strip(), language="sql")
 
-
-# ==================================================================
 # PAGE 4 — ACCOUNT LOOKUP
-# ==================================================================
+
 elif page == "Account Lookup":
     st.markdown('<div class="page-title">Account Lookup</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-sub">View all transactions for a specific account and check for flagged activity.</div>', unsafe_allow_html=True)
@@ -430,9 +414,8 @@ elif page == "Account Lookup":
                      use_container_width=True, hide_index=True)
 
 
-# ==================================================================
 # PAGE 5 — REPORTS
-# ==================================================================
+
 elif page == "Reports":
     st.markdown('<div class="page-title">Reports</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-sub">Compliance reporting and monitoring summaries.</div>', unsafe_allow_html=True)
@@ -445,7 +428,7 @@ elif page == "Reports":
         "Fraud Breakdown",
     ])
 
-    # ── High-priority alerts ──────────────────────────────────────────────────
+    # High-priority alerts 
     if report == "High-Priority Alerts":
         st.subheader("High-Priority Alerts")
         st.caption("CRITICAL and HIGH severity alerts — these are candidates for manual review.")
@@ -459,7 +442,7 @@ elif page == "Reports":
         else:
             st.info("No alerts found. Run detection rules first.")
 
-    # ── Monthly summary ───────────────────────────────────────────────────────
+    # Monthly summary 
     elif report == "Monthly Summary":
         st.subheader("Monthly Transaction Summary")
 
@@ -481,14 +464,13 @@ elif page == "Reports":
                             font_color="#8c8fa8", margin=dict(l=0,r=0,t=10,b=0))
         st.plotly_chart(fig_m, use_container_width=True)
 
-    # ── Rule coverage ─────────────────────────────────────────────────────────
+    # Rule coverage 
     elif report == "Rule Coverage":
         st.subheader("Rule Coverage Analysis")
 
-        # these numbers come from the actual rule results, not hardcoded
         active_rules  = sum(1 for v in rule_res.get("per_rule", {}).values() if v["hits"] > 0)
         total_rules   = len(RULES)
-        known_gaps    = 3  # cross-border, shell company, trade finance — not in PaySim
+        known_gaps    = 3  
 
         g1, g2, g3 = st.columns(3)
         g1.metric("Rules with Hits",  f"{active_rules} / {total_rules}")
@@ -497,7 +479,6 @@ elif page == "Reports":
 
         st.markdown("---")
 
-        # coverage table — only shows what the code actually knows
         coverage_rows = []
         for rid, meta in RULES.items():
             hits = rule_res.get("per_rule", {}).get(rid, {}).get("hits", 0)
@@ -509,7 +490,6 @@ elif page == "Reports":
                 "Active":     "Yes" if hits > 0 else "No hits yet",
             })
 
-        # add known gaps — things PaySim can't test
         gaps = [
             {"Rule": "—", "Description": "Cross-border transfers",
              "Severity": "HIGH", "Alerts": "—",
@@ -534,7 +514,7 @@ elif page == "Reports":
         st.download_button("Export Coverage Table", coverage_df.to_csv(index=False),
                            "rule_coverage.csv", "text/csv")
 
-    # ── Fraud breakdown ───────────────────────────────────────────────────────
+    # Fraud breakdown 
     elif report == "Fraud Breakdown":
         st.subheader("Fraud Breakdown")
         st.caption("Based on PaySim ground-truth fraud labels.")
